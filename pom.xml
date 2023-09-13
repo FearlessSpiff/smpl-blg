@@ -7,6 +7,10 @@
     <artifactId>smpl-blog</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>Simple Blog</name>
+    <properties>
+        <maven.compiler.source>20</maven.compiler.source>
+        <maven.compiler.target>20</maven.compiler.target>
+    </properties>
     <packaging>pom</packaging>
 
     <modules>

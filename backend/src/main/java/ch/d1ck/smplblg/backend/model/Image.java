@@ -4,6 +4,8 @@ public record Image(
         String id,
         String name,
         String url,
+        String height,
+        String width,
         String thumbUrl,
         String dateTime,
         String focalLength,

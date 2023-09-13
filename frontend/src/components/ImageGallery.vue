@@ -20,9 +20,9 @@ export default {
 </script>
 
 <template>
-  <div class="d-flex align-center flex-row flex-wrap">
+  <div class="d-flex flex-row flex-wrap">
     <div v-for="(image) in images" :key="image.id">
-      <polaroid :image="image"/>
+      <polaroid class="ma-2" :image="image"/>
     </div>
   </div>
 </template>

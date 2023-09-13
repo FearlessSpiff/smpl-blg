@@ -27,13 +27,13 @@ import java.util.stream.Stream;
 
 import static java.util.Comparator.comparing;
 import static org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants.*;
-import static org.apache.commons.imaging.formats.tiff.constants.TiffTagConstants.TIFF_TAG_DATE_TIME;
+import static org.apache.commons.imaging.formats.tiff.constants.TiffTagConstants.*;
 import static org.imgscalr.Scalr.Method.ULTRA_QUALITY;
 
 @Service
 public class ImageMagic {
 
-    private static Logger LOGGER = LoggerFactory.getLogger(ImageMagic.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ImageMagic.class);
 
     @Value("${image-path}")
     private String imagePath;
@@ -87,11 +87,15 @@ public class ImageMagic {
 
             final JpegImageMetadata jpegImageMetadata;
             try {
-                jpegImageMetadata = (JpegImageMetadata) Imaging.getMetadata(Paths.get(directoryPath.toString(), thumbFilename).toFile());
+                File originalImageFile = Paths.get(directoryPath.toString(), originalFilename).toFile();
+                BufferedImage bufferedImage = ImageIO.read(originalImageFile);
+                jpegImageMetadata = (JpegImageMetadata) Imaging.getMetadata(originalImageFile);
                 Image image = new Image(
                         directoryPath.getFileName().toString(),
                         directoryPath.getFileName().toString(),
                         "images/" + directoryPath.getFileName() + "/" + originalFilename,
+                        Integer.toString(bufferedImage.getHeight()),
+                        Integer.toString(bufferedImage.getWidth()),
                         "images/" + directoryPath.getFileName() + "/" + thumbFilename,
                         exifOf(jpegImageMetadata, TIFF_TAG_DATE_TIME),
                         exifOf(jpegImageMetadata, EXIF_TAG_FOCAL_LENGTH),
