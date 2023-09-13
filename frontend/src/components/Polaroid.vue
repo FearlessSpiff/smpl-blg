@@ -18,7 +18,7 @@ export default {
 </script>
 
 <template>
-  <v-card class="polaroid" variant="tonal ma-2" :style="rotate">
+  <v-card class="polaroid ma-2" variant="tonal" :style="rotate">
     <v-img :min-width="360" class="ma-3" :src="'/api/v1/' + image.thumbUrl" :alt="image.name"/>
     <v-card-text class="handwriting">
       <h1 class="font-weight-thin">{{ image.name }}</h1>
@@ -34,7 +34,7 @@ export default {
   background-color: white;
   color: #121212;
   box-shadow: 0 3px 3px rgba(0,0,0,0.2);
-  font-family: "Oleo Script";
+  font-family: "Oleo Script",serif;
 }
 
 .handwriting {

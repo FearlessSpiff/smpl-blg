@@ -29,8 +29,6 @@ import static java.util.Comparator.comparing;
 import static org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants.*;
 import static org.apache.commons.imaging.formats.tiff.constants.TiffTagConstants.TIFF_TAG_DATE_TIME;
 import static org.imgscalr.Scalr.Method.ULTRA_QUALITY;
-import static org.imgscalr.Scalr.Mode.FIT_TO_HEIGHT;
-import static org.imgscalr.Scalr.Mode.FIT_TO_WIDTH;
 
 @Service
 public class ImageMagic {
