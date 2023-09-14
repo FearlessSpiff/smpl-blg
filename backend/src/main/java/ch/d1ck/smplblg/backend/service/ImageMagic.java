@@ -1,7 +1,7 @@
 package ch.d1ck.smplblg.backend.service;
 
 import ch.d1ck.smplblg.backend.model.Image;
-import jakarta.annotation.PostConstruct;
+import ch.d1ck.smplblg.backend.model.ImageData;
 import org.apache.commons.imaging.ImageReadException;
 import org.apache.commons.imaging.ImageWriteException;
 import org.apache.commons.imaging.Imaging;
@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileUrlResource;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
@@ -22,12 +23,17 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Stream;
 
+import static ch.d1ck.smplblg.backend.service.ImageSize.*;
 import static java.util.Comparator.comparing;
 import static org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants.*;
-import static org.apache.commons.imaging.formats.tiff.constants.TiffTagConstants.*;
+import static org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants.EXIF_TAG_ISO;
+import static org.apache.commons.imaging.formats.tiff.constants.TiffTagConstants.TIFF_TAG_DATE_TIME;
+import static org.apache.commons.imaging.formats.tiff.constants.TiffTagConstants.TIFF_TAG_ORIENTATION;
 import static org.imgscalr.Scalr.Method.ULTRA_QUALITY;
 
 @Service
@@ -38,15 +44,12 @@ public class ImageMagic {
     @Value("${image-path}")
     private String imagePath;
 
-    private final SortedSet<Image> images = new TreeSet<>(comparing(Image::dateTime).reversed());
+    private final SortedSet<ImageData> images = new TreeSet<>(comparing(ImageData::dateTime).reversed());
+    private final Collection<String> supportedFileEndings = List.of("JPEG", "JPG");
+    private final DateTimeFormatter exifParser = DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss");
+    private final DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
-    @PostConstruct
-    public void init() {
-        initThumbnails();
-        initCache();
-    }
-
-    public Collection<Image> images() {
+    public Collection<ImageData> images() {
         return images;
     }
 
@@ -56,117 +59,183 @@ public class ImageMagic {
         return new InputStreamResource(fileUrlResource.getInputStream());
     }
 
-
-    private void initThumbnails() {
+    @Scheduled(initialDelay = 0, fixedDelay = 300000)
+    private void scanForNewImages() {
         try (Stream<Path> stream = Files.list(Paths.get(this.imagePath))) {
-            stream.filter(Files::isDirectory)
-                    .forEach(ImageMagic::createThumbnailIfNeeded);
+            stream.filter(Files::isDirectory).forEach(this::processDirectory);
+            LOGGER.info("finished scanning for new images");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void initCache() {
-        try (Stream<Path> stream = Files.list(Paths.get(this.imagePath))) {
-            stream.filter(Files::isDirectory)
-                    .forEach(this::addToCache);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+    private void processDirectory(Path directoryPath) {
+        long numberOfFilesInDir = filesCount(directoryPath);
+        if (numberOfFilesInDir == 0) {
+            LOGGER.debug("skipping directory '" + directoryPath.getFileName() + "' as it is empty");
+        } else if (numberOfFilesInDir == 1) {
+            processNewImage(directoryPath);
+            addToCache(directoryPath);
+        } else if (numberOfFilesInDir >= 3) {
+            addToCache(directoryPath);
         }
+    }
+
+    private void processNewImage(Path directoryPath) {
+        LOGGER.info("processing new image in directory '" + directoryPath + "'");
+        String[] imageFiles = listSupportedImages(directoryPath);
+
+        File originalFile = renameAndRetrieveOriginalFile(directoryPath, imageFiles[0]);
+
+        resizeTo(SMALL, directoryPath, originalFile, imageFiles[0]);
+        resizeTo(BIG, directoryPath, originalFile, imageFiles[0]);
     }
 
     private void addToCache(Path directoryPath) {
-        String[] imageFiles = directoryPath.toFile().list((dir, name) -> name.endsWith("jpeg") || name.endsWith("JPEG") || name.endsWith("jpg") || name.endsWith("JPG"));
-        if ((imageFiles != null ? imageFiles.length : 0) == 2) {
-            String originalFilename = imageFiles[0];
-            String thumbFilename = imageFiles[1];
-            if (imageFiles[0].contains("thumb-")) {
-                originalFilename = imageFiles[1];
-                thumbFilename = imageFiles[0];
-            }
-
-            final JpegImageMetadata jpegImageMetadata;
-            try {
-                File originalImageFile = Paths.get(directoryPath.toString(), originalFilename).toFile();
-                BufferedImage bufferedImage = ImageIO.read(originalImageFile);
-                jpegImageMetadata = (JpegImageMetadata) Imaging.getMetadata(originalImageFile);
-                Image image = new Image(
-                        directoryPath.getFileName().toString(),
-                        directoryPath.getFileName().toString(),
-                        "images/" + directoryPath.getFileName() + "/" + originalFilename,
-                        Integer.toString(bufferedImage.getHeight()),
-                        Integer.toString(bufferedImage.getWidth()),
-                        "images/" + directoryPath.getFileName() + "/" + thumbFilename,
-                        exifOf(jpegImageMetadata, TIFF_TAG_DATE_TIME),
-                        exifOf(jpegImageMetadata, EXIF_TAG_FOCAL_LENGTH),
-                        exifOf(jpegImageMetadata, EXIF_TAG_SHUTTER_SPEED_VALUE),
-                        exifOf(jpegImageMetadata, EXIF_TAG_APERTURE_VALUE),
-                        exifOf(jpegImageMetadata, EXIF_TAG_ISO)
-                );
-                LOGGER.info("adding '" + image + "' to cache ...");
-                this.images.add(image);
-            } catch (IOException | ImageReadException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-    private String exifOf(JpegImageMetadata jpegImageMetadata, TagInfo exifTag) throws ImageReadException {
-        return jpegImageMetadata.findEXIFValueWithExactMatch(exifTag) != null ? jpegImageMetadata.findEXIFValueWithExactMatch(exifTag).getValue().toString() : "";
-    }
-
-    private static void createThumbnailIfNeeded(Path directoryPath) {
-        if (hasThumbnail(directoryPath)) {
+        if (isAlreadyCached(directoryPath)) {
+            LOGGER.debug("skipping already cached image '" + directoryPath.getFileName() + "'");
             return;
         }
+        String[] imageFiles = listSupportedImages(directoryPath);
 
-        Optional<Path> optionalImagePath = findImagePath(directoryPath);
-        if (optionalImagePath.isEmpty()) {
-            return;
-        }
-        Path imagePath = optionalImagePath.get();
-        try (FileOutputStream fos = new FileOutputStream(imagePath.getParent().toString() + "/thumb-" + imagePath.getFileName().toString());
-             OutputStream os = new BufferedOutputStream(fos)) {
 
-            LOGGER.info("creating thumbnail for '" + imagePath.getFileName() + "'" );
+        // we will have wrong height and width without the orientation in the original image data, but accept it as we don't use it
+        Image originalImage = retrieveImageInfo(ORIGINAL, directoryPath, imageFiles);
+        JpegImageMetadata metadata = retrieveJpegMetadata(originalImage.localFile());
 
-            BufferedImage originalImage = ImageIO.read(imagePath.toFile());
-            final JpegImageMetadata originalJpegMetadata = (JpegImageMetadata) Imaging.getMetadata(imagePath.toFile());
-            BufferedImage resizedImage = Scalr.resize(originalImage, ULTRA_QUALITY, 720);
-            File tempResizedFile = new File(imagePath.getParent().toString() + "/temp-" + imagePath.getFileName().toString());
+        Image smallImage = retrieveImageInfo(SMALL, directoryPath, imageFiles, Integer.valueOf(exifOf(metadata, TIFF_TAG_ORIENTATION)));
+        Image bigImage = retrieveImageInfo(BIG, directoryPath, imageFiles, Integer.valueOf(exifOf(metadata, TIFF_TAG_ORIENTATION)));
+
+        // TODO: 9/14/23 fix exif data
+        ImageData imageData = new ImageData(
+                directoryPath.getFileName().toString(),
+                directoryPath.getFileName().toString(),
+                originalImage,
+                smallImage,
+                bigImage,
+                dateTimeOf(exifOf(metadata, TIFF_TAG_DATE_TIME)),
+                humanReadableOf(exifOf(metadata, TIFF_TAG_DATE_TIME)),
+                exifOf(metadata, EXIF_TAG_FOCAL_LENGTH),
+                exifOf(metadata, EXIF_TAG_SHUTTER_SPEED_VALUE),
+                exifOf(metadata, EXIF_TAG_APERTURE_VALUE),
+                exifOf(metadata, EXIF_TAG_ISO)
+        );
+
+        LOGGER.info("adding '" + imageData + "' to cache ...");
+        this.images.add(imageData);
+    }
+
+    private LocalDateTime dateTimeOf(String exifDateTime) {
+        return LocalDateTime.parse(exifDateTime, this.exifParser);
+    }
+
+    public String humanReadableOf(String exifDateTime) {
+        return dateTimeOf(exifDateTime).format(outputFormatter);
+    }
+
+    private String[] listSupportedImages(Path directoryPath) {
+        return directoryPath.toFile()
+                .list((dir, name) -> {
+                    String[] dotSplitted = name.split("\\.");
+                    String ending = dotSplitted[dotSplitted.length - 1].toUpperCase();
+
+                    return this.supportedFileEndings.contains(ending);
+                });
+    }
+
+    private boolean isAlreadyCached(Path directoryPath) {
+        return this.images.stream().anyMatch(imageData -> Objects.equals(imageData.id(), directoryPath.getFileName().toString()));
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    private static void resizeTo(ImageSize imageSize, Path directoryPath, File originalFile, String originalFilename) {
+        try {
+            // prepare
+            BufferedImage originalImage = ImageIO.read(originalFile);
+            JpegImageMetadata metadata = retrieveJpegMetadata(originalFile);
+
+            // resize to temp
+            BufferedImage resizedImage = Scalr.resize(originalImage, ULTRA_QUALITY, imageSize.targetSize());
+            File tempResizedFile = new File(directoryPath + "/temp-" + originalFilename);
             ImageIO.write(resizedImage, "jpeg", tempResizedFile);
 
-            new ExifRewriter().updateExifMetadataLossless(tempResizedFile, os, originalJpegMetadata.getExif().getOutputSet());
-
+            // use temp to write exif to finished file
+            OutputStream os = new BufferedOutputStream(new FileOutputStream(directoryPath + "/" + imageSize.filePrefix() + originalFilename));
+            new ExifRewriter().updateExifMetadataLossless(tempResizedFile, os, metadata.getExif().getOutputSet());
             tempResizedFile.delete();
 
+            LOGGER.info("resized original file '" + originalFile + "' to '" + imageSize + "'");
         } catch (IOException | ImageReadException | ImageWriteException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private static boolean hasThumbnail(Path directoryPath) {
+    private static File renameAndRetrieveOriginalFile(Path directoryPath, String imageFile) {
+        File pristineOriginalFile = Paths.get(directoryPath + "/" + imageFile).toFile();
+        File originalFile = Paths.get(directoryPath + "/" + ORIGINAL.filePrefix() + imageFile).toFile();
+        if (pristineOriginalFile.renameTo(originalFile)) {
+            return originalFile;
+        } else {
+            throw new RuntimeException("failed renaming original file in directory = '" + directoryPath.getFileName() + "'");
+        }
+    }
+
+    private static long filesCount(Path directoryPath) {
         try (Stream<Path> stream = Files.list(directoryPath)) {
-            return stream
-                    .filter(file -> !Files.isDirectory(file))
-                    .anyMatch(filePath -> filePath.getFileName().toString().startsWith("thumb-"));
+            return stream.count();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private static Optional<Path> findImagePath(Path directoryPath) {
-        try (Stream<Path> stream = Files.list(directoryPath)) {
-            return stream
-                    .filter(file -> !Files.isDirectory(file))
-                    .filter(filePath -> filePath.getFileName().toString().endsWith(".JPG") ||
-                            filePath.getFileName().toString().endsWith(".JPEG") ||
-                            filePath.getFileName().toString().endsWith(".jpg") ||
-                            filePath.getFileName().toString().endsWith(".jpeg"))
-                    .findFirst();
+    private static JpegImageMetadata retrieveJpegMetadata(File imageFile) {
+        try {
+            return (JpegImageMetadata) Imaging.getMetadata(imageFile);
+        } catch (IOException | ImageReadException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static String exifOf(JpegImageMetadata jpegImageMetadata, TagInfo exifTag) {
+        try {
+            return jpegImageMetadata.findEXIFValueWithExactMatch(exifTag) != null ? jpegImageMetadata.findEXIFValueWithExactMatch(exifTag).getValue().toString() : "";
+        } catch (ImageReadException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static Image retrieveImageInfo(ImageSize imageSize, Path directoryPath, String[] imageFiles) {
+        return retrieveImageInfo(imageSize, directoryPath, imageFiles, null);
+    }
+
+    private static Image retrieveImageInfo(ImageSize imageSize, Path directoryPath, String[] imageFiles, Integer orientation) {
+        Optional<String> fileName = imageSize.matchingPrefix(imageFiles);
+        if (fileName.isEmpty()) {
+            throw new RuntimeException("cannot find a match for imageSize = '" + imageSize + "' and imageFiles = '" + Arrays.toString(imageFiles) + "'");
+        }
+        File imageFile = Paths.get(directoryPath.toString(), fileName.get()).toFile();
+        BufferedImage bufferedImage;
+        try {
+            bufferedImage = ImageIO.read(imageFile);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        // workaround to handle image orientation, see https://www.awaresystems.be/imaging/tiff/tifftags/orientation.html
+        List<Integer> knownPortraitOrientations = List.of(6, 8);
+
+        int height = bufferedImage.getHeight();
+        int width = bufferedImage.getWidth();
+
+        if (orientation != null && knownPortraitOrientations.contains(orientation)) {
+            height = bufferedImage.getWidth();
+            width = bufferedImage.getHeight();
+        }
+        return new Image(
+                "images/" + directoryPath.getFileName() + "/" + imageFile.getName(),
+                Integer.toString(height),
+                Integer.toString(width),
+                imageFile
+        );
     }
 
 }

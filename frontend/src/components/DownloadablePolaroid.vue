@@ -6,10 +6,10 @@ export default {
   components: {Polaroid},
   methods: {
     isPortrait() {
-      return (this.image.height / this.image.width).toFixed(1) >= 1;
+      return (this.imageData.bigImage.height / this.imageData.bigImage.width).toFixed(1) >= 1;
     },
     aspectRatio() {
-      return this.image.width / this.image.height;
+      return this.imageData.bigImage.width / this.imageData.bigImage.height;
     }
   },
   data() {
@@ -20,7 +20,7 @@ export default {
   computed: {
     imageWidth() {
       if (this.isPortrait()) {
-        const aspect = this.image.height / this.image.width;
+        const aspect = this.imageData.bigImage.height / this.imageData.bigImage.width;
         const maxHeight = this.$vuetify.display.height * 0.8;
 
         return maxHeight / aspect;
@@ -29,7 +29,7 @@ export default {
       }
     }
   },
-  props: ['image']
+  props: ['imageData']
 
 }
 
@@ -40,22 +40,22 @@ export default {
   <v-dialog v-model="dialog" width="auto" height="auto">
 
     <template v-slot:activator="{ props }">
-      <polaroid class="ma-2" :image="image" v-bind="props"/>
+      <polaroid class="ma-2" :imageData="imageData" v-bind="props"/>
     </template>
 
     <v-card class="polaroid ma-2">
       <v-img
           class="ma-3"
-          :src="'/api/v1/' + image.url"
+          :src="'/api/v1/' + imageData.bigImage.url"
           :lazy-src="isPortrait()? 'lazy-portrait.jpg' : 'lazy-landscape.jpg'"
-          :alt="image.name"
+          :alt="imageData.name"
           :width="imageWidth"
           :aspect-ratio="aspectRatio()"
           contain
       />
       <v-card-text class="handwriting">
-        <h1 class="font-weight-thin">{{ image.name }}</h1>
-        <h5 class="font-weight-thin">{{ image.dateTime }}</h5>
+        <h1 class="font-weight-thin">{{ imageData.name }}</h1>
+        <h5 class="font-weight-thin">{{ imageData.humanReadableDateTime }}</h5>
       </v-card-text>
     </v-card>
 

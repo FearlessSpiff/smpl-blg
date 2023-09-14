@@ -26,9 +26,9 @@ export default {
 
 <template>
   <div class="d-flex flex-row flex-wrap align-center" :class="{ 'justify-center': isMobile } ">
-    <div v-for="(image) in images" :key="image.id">
-      <polaroid v-if="isMobile" class="ma-2" :image="image"/>
-      <downloadable-polaroid v-if="!isMobile" class="ma-2" :image="image"/>
+    <div v-for="(imageData) in images" :key="imageData.id">
+      <polaroid v-if="isMobile" class="ma-2" :imageData="imageData"/>
+      <downloadable-polaroid v-if="!isMobile" class="ma-2" :imageData="imageData"/>
     </div>
   </div>
 </template>

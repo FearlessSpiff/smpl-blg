@@ -9,10 +9,10 @@ export default {
   },
   methods: {
     isPortrait() {
-      return (this.image.height / this.image.width).toFixed(1) >= 1;
+      return (this.imageData.smallImage.height / this.imageData.smallImage.width).toFixed(1) >= 1;
     },
     aspectRatio() {
-      return this.image.width / this.image.height;
+      return this.imageData.smallImage.width / this.imageData.smallImage.height;
     }
   },
   computed: {
@@ -29,13 +29,13 @@ export default {
         case 'lg':
         case 'xl':
         case 'xxl':
-          return '600'
+          return '500'
         default:
           return '280'
       }
     }
   },
-  props: ['image']
+  props: ['imageData']
 
 }
 
@@ -43,19 +43,19 @@ export default {
 
 <template>
 
-  <v-card class="polaroid ma-2" :style="rotate">
+  <v-card class="polaroid ma-2" :style="rotate" :max-width="parseInt(imageWidth) + 25">
     <v-img
         :width="imageWidth"
         class="ma-3"
-        :src="'/api/v1/' + image.thumbUrl"
+        :src="'/api/v1/' + imageData.smallImage.url"
         :lazy-src="isPortrait()? 'lazy-portrait.jpg' : 'lazy-landscape.jpg'"
         :aspect-ratio="aspectRatio()"
-        :alt="image.name"
+        :alt="imageData.name"
         contain
     />
     <v-card-text class="handwriting">
-      <h1 class="font-weight-thin">{{ image.name }}</h1>
-      <h5 class="font-weight-thin">{{ image.dateTime }}</h5>
+      <h1 class="font-weight-thin">{{ imageData.name }}</h1>
+      <h5 class="font-weight-thin">{{ imageData.humanReadableDateTime }}</h5>
     </v-card-text>
   </v-card>
 
