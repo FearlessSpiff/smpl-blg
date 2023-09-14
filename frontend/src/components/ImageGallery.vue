@@ -1,8 +1,8 @@
 <script>
 import Polaroid from './Polaroid.vue'
-
+import DownloadablePolaroid from "./DownloadablePolaroid.vue";
 export default {
-  components: {Polaroid},
+  components: {Polaroid, DownloadablePolaroid},
   data() {
     return {
       images: []
@@ -15,14 +15,20 @@ export default {
         .catch((err) => {
           console.error(err);
         })
+  },
+  computed: {
+    isMobile(){
+      return this.$vuetify.display.mobile;
+    }
   }
 }
 </script>
 
 <template>
-  <div class="d-flex flex-row flex-wrap">
+  <div class="d-flex flex-row flex-wrap align-center" :class="{ 'justify-center': isMobile } ">
     <div v-for="(image) in images" :key="image.id">
-      <polaroid class="ma-2" :image="image"/>
+      <polaroid v-if="isMobile" class="ma-2" :image="image"/>
+      <downloadable-polaroid v-if="!isMobile" class="ma-2" :image="image"/>
     </div>
   </div>
 </template>
