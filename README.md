@@ -1,5 +1,6 @@
 # smpl-blg
 ## TODO
+* Fix wrong dates on blog
 * Change Browser Icon
 * Treeshaking
 * Add a download button for original image
