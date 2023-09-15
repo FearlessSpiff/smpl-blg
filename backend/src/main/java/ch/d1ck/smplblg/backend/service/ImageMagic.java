@@ -71,7 +71,7 @@ public class ImageMagic {
 
     private void processDirectory(Path directoryPath) {
         if (directoryPath.getFileName().toString().startsWith(".")) {
-            LOGGER.info("skipping hidden directory '" + directoryPath + "'");
+            LOGGER.debug("skipping hidden directory '" + directoryPath + "'");
             return;
         }
         long numberOfFilesInDir = filesCount(directoryPath);
