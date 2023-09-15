@@ -70,6 +70,10 @@ public class ImageMagic {
     }
 
     private void processDirectory(Path directoryPath) {
+        if (directoryPath.getFileName().toString().startsWith(".")) {
+            LOGGER.info("skipping hidden directory '" + directoryPath + "'");
+            return;
+        }
         long numberOfFilesInDir = filesCount(directoryPath);
         if (numberOfFilesInDir == 0) {
             LOGGER.debug("skipping directory '" + directoryPath.getFileName() + "' as it is empty");
