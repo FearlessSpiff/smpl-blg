@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.io.IOException;
 import java.util.Collection;
 
+import static java.util.concurrent.TimeUnit.DAYS;
+import static org.springframework.http.CacheControl.maxAge;
 import static org.springframework.http.MediaType.IMAGE_JPEG;
 import static org.springframework.http.MediaType.IMAGE_JPEG_VALUE;
 
@@ -35,6 +37,7 @@ public class ImageWebService {
         try {
             return ResponseEntity
                     .ok()
+                    .cacheControl(maxAge(365, DAYS))
                     .contentType(IMAGE_JPEG)
                     .body(this.imageMagic.getImage(id + "/" + path));
         } catch (IOException e) {

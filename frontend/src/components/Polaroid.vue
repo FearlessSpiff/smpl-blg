@@ -22,7 +22,7 @@ export default {
     imageWidth() {
       switch (this.$vuetify.display.name) {
         case 'xs':
-          return '280'
+          return this.$vuetify.display.width * 0.85
         case 'sm':
           return '400'
         case 'md':
@@ -47,7 +47,7 @@ export default {
     <v-img
         :width="imageWidth"
         class="ma-3"
-        :src="'/api/v1/' + imageData.smallImage.url"
+        :src="imageData.smallImage.url"
         :lazy-src="isPortrait()? 'lazy-portrait.jpg' : 'lazy-landscape.jpg'"
         :aspect-ratio="aspectRatio()"
         :alt="imageData.name"

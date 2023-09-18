@@ -235,7 +235,7 @@ public class ImageMagic {
             width = bufferedImage.getHeight();
         }
         return new Image(
-                "images/" + directoryPath.getFileName() + "/" + imageFile.getName(),
+                "/api/v1/images/" + directoryPath.getFileName() + "/" + imageFile.getName(),
                 Integer.toString(height),
                 Integer.toString(width),
                 imageFile

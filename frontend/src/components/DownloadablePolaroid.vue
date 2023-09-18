@@ -46,7 +46,7 @@ export default {
     <v-card class="polaroid ma-2">
       <v-img
           class="ma-3"
-          :src="'/api/v1/' + imageData.bigImage.url"
+          :src="imageData.bigImage.url"
           :lazy-src="isPortrait()? 'lazy-portrait.jpg' : 'lazy-landscape.jpg'"
           :alt="imageData.name"
           :width="imageWidth"
