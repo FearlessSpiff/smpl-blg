@@ -2,6 +2,8 @@ package ch.d1ck.smplblg.backend.ws;
 
 import ch.d1ck.smplblg.backend.model.ImageData;
 import ch.d1ck.smplblg.backend.service.ImageMagic;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.ResponseEntity;
@@ -23,8 +25,14 @@ import static org.springframework.http.MediaType.IMAGE_JPEG_VALUE;
 @RequestMapping("/api/v1")
 public class ImageWebService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ImageMagic.class);
+
+    private final ImageMagic imageMagic;
+
     @Autowired
-    private ImageMagic imageMagic;
+    public ImageWebService(ImageMagic imageMagic) {
+        this.imageMagic = imageMagic;
+    }
 
     @GetMapping("/images")
     @ResponseBody
@@ -34,6 +42,7 @@ public class ImageWebService {
 
     @GetMapping(value = "/images/{id}/{path}", produces = IMAGE_JPEG_VALUE)
     public ResponseEntity<InputStreamResource> getImage(@PathVariable(value = "id") String id, @PathVariable(value = "path") String path) {
+        LOGGER.info("got file: " + path);
         try {
             return ResponseEntity
                     .ok()
