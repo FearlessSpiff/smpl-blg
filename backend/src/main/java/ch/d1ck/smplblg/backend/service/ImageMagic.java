@@ -32,7 +32,6 @@ import static ch.d1ck.smplblg.backend.service.ImageSize.*;
 import static java.util.Comparator.comparing;
 import static org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants.*;
 import static org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants.EXIF_TAG_ISO;
-import static org.apache.commons.imaging.formats.tiff.constants.TiffTagConstants.TIFF_TAG_DATE_TIME;
 import static org.apache.commons.imaging.formats.tiff.constants.TiffTagConstants.TIFF_TAG_ORIENTATION;
 import static org.imgscalr.Scalr.Method.ULTRA_QUALITY;
 
@@ -117,8 +116,8 @@ public class ImageMagic {
                 originalImage,
                 smallImage,
                 bigImage,
-                dateTimeOf(exifOf(metadata, TIFF_TAG_DATE_TIME)),
-                humanReadableOf(exifOf(metadata, TIFF_TAG_DATE_TIME)),
+                dateTimeOf(exifOf(metadata, EXIF_TAG_DATE_TIME_ORIGINAL)),
+                humanReadableOf(exifOf(metadata, EXIF_TAG_DATE_TIME_ORIGINAL)),
                 exifOf(metadata, EXIF_TAG_FOCAL_LENGTH),
                 exifOf(metadata, EXIF_TAG_SHUTTER_SPEED_VALUE),
                 exifOf(metadata, EXIF_TAG_APERTURE_VALUE),
@@ -133,7 +132,7 @@ public class ImageMagic {
         return LocalDateTime.parse(exifDateTime, this.exifParser);
     }
 
-    public String humanReadableOf(String exifDateTime) {
+    private String humanReadableOf(String exifDateTime) {
         return dateTimeOf(exifDateTime).format(outputFormatter);
     }
 

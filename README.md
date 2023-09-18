@@ -30,9 +30,6 @@ location / {
 ```
     
 ## TODO
-* Fix wrong dates on blog
 * Fix exif data and show on web
 * Treeshaking
 * Add a download button for original image
-* Serve images from Nginx
-* Add docu how to build and run
