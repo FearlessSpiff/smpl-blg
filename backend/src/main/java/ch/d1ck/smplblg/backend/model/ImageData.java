@@ -13,9 +13,6 @@ public record ImageData(
         @JsonIgnore
         LocalDateTime dateTime,
         String humanReadableDateTime,
-        String focalLength,
-        String shutterSpeed,
-        String aperture,
-        String iso
+        String model
 
 ) {}

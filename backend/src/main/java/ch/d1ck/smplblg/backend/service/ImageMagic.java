@@ -30,8 +30,8 @@ import java.util.stream.Stream;
 
 import static ch.d1ck.smplblg.backend.service.ImageSize.*;
 import static java.util.Comparator.comparing;
-import static org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants.*;
-import static org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants.EXIF_TAG_ISO;
+import static org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants.EXIF_TAG_DATE_TIME_ORIGINAL;
+import static org.apache.commons.imaging.formats.tiff.constants.TiffTagConstants.TIFF_TAG_MODEL;
 import static org.apache.commons.imaging.formats.tiff.constants.TiffTagConstants.TIFF_TAG_ORIENTATION;
 import static org.imgscalr.Scalr.Method.ULTRA_QUALITY;
 
@@ -109,7 +109,6 @@ public class ImageMagic {
         Image smallImage = retrieveImageInfo(SMALL, directoryPath, imageFiles, Integer.valueOf(exifOf(metadata, TIFF_TAG_ORIENTATION)));
         Image bigImage = retrieveImageInfo(BIG, directoryPath, imageFiles, Integer.valueOf(exifOf(metadata, TIFF_TAG_ORIENTATION)));
 
-        // TODO: 9/14/23 fix exif data
         ImageData imageData = new ImageData(
                 directoryPath.getFileName().toString(),
                 directoryPath.getFileName().toString(),
@@ -118,10 +117,8 @@ public class ImageMagic {
                 bigImage,
                 dateTimeOf(exifOf(metadata, EXIF_TAG_DATE_TIME_ORIGINAL)),
                 humanReadableOf(exifOf(metadata, EXIF_TAG_DATE_TIME_ORIGINAL)),
-                exifOf(metadata, EXIF_TAG_FOCAL_LENGTH),
-                exifOf(metadata, EXIF_TAG_SHUTTER_SPEED_VALUE),
-                exifOf(metadata, EXIF_TAG_APERTURE_VALUE),
-                exifOf(metadata, EXIF_TAG_ISO)
+                exifOf(metadata, TIFF_TAG_MODEL)
+
         );
 
         LOGGER.info("adding '" + imageData + "' to cache ...");
@@ -201,7 +198,7 @@ public class ImageMagic {
 
     private static String exifOf(JpegImageMetadata jpegImageMetadata, TagInfo exifTag) {
         try {
-            return jpegImageMetadata.findEXIFValueWithExactMatch(exifTag) != null ? jpegImageMetadata.findEXIFValueWithExactMatch(exifTag).getValue().toString() : "";
+            return jpegImageMetadata.findEXIFValueWithExactMatch(exifTag) != null ? jpegImageMetadata.findEXIFValueWithExactMatch(exifTag).getValue().toString().trim() : "";
         } catch (ImageReadException e) {
             throw new RuntimeException(e);
         }
