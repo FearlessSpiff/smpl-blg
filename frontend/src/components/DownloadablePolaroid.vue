@@ -11,7 +11,7 @@ export default {
       return mdiDownload
     },
     isPortrait() {
-      return (this.imageData.bigImage.height / this.imageData.bigImage.width).toFixed(1) > 1;
+      return (this.imageData.bigImage.height / this.imageData.bigImage.width).toFixed(1) >= 1;
     },
     aspectRatio() {
       return this.imageData.bigImage.width / this.imageData.bigImage.height;
@@ -50,7 +50,7 @@ export default {
 
     <div class="polaroid ma-2">
       <v-img
-          class="image ma-3"
+          class="ma-3"
           :src="imageData.bigImage.url"
           :lazy-src="isPortrait()? 'lazy-portrait.jpg' : 'lazy-landscape.jpg'"
           :alt="imageData.name"
