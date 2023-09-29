@@ -31,7 +31,6 @@ location / {
     
 ## TODO
 * Maybe show Camera Model
-* Add a download button for original image
 * Show DownloadablePolaroid also on Mobile and set Size correctly
 * Add paging and endless scroll
 * Maybe add a new maven module smpl-blg-application and bundle the other two in it. Would be nicer. And rename the others to smpl-blg-frontend and smpl-blg-backend.

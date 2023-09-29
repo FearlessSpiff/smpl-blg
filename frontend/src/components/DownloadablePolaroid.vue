@@ -60,7 +60,7 @@ export default {
       />
       <v-card-text>
         <div class="flex-hack"> <!-- messing with grid system destroys other layout, thus this hack -->
-          <v-tooltip text="Download original">
+          <v-tooltip text="Download Original">
             <template v-slot:activator="{ props }">
               <v-btn
                   v-bind="props"
