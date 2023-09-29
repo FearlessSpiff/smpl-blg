@@ -1,6 +1,7 @@
 <script>
 import Polaroid from './Polaroid.vue'
 import DownloadablePolaroid from "./DownloadablePolaroid.vue";
+
 export default {
   components: {Polaroid, DownloadablePolaroid},
   data() {
@@ -17,7 +18,7 @@ export default {
         })
   },
   computed: {
-    isMobile(){
+    isMobile() {
       return this.$vuetify.display.mobile;
     }
   }

@@ -22,10 +22,10 @@ export default {
     imageWidth() {
       switch (this.$vuetify.display.name) {
         case 'xs':
-          return this.$vuetify.display.width * 0.85
         case 'sm':
-          return '400'
+          return this.$vuetify.display.width * 0.8
         case 'md':
+          return '400'
         case 'lg':
         case 'xl':
         case 'xxl':
@@ -53,14 +53,11 @@ export default {
         :alt="imageData.name"
         contain
     />
-    <v-row>
-      <v-col>
-        <v-card-text class="handwriting">
-          <h1 class="font-weight-thin">{{ imageData.name }}</h1>
-          <h5 class="font-weight-thin">{{ imageData.humanReadableDateTime }}</h5>
-        </v-card-text>
-      </v-col>
-    </v-row>
+
+    <v-card-text class="handwriting">
+      <h1 class="font-weight-thin">{{ imageData.name }}</h1>
+      <h5 class="font-weight-thin">{{ imageData.humanReadableDateTime }}</h5>
+    </v-card-text>
   </v-card>
 
 </template>
