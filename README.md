@@ -31,5 +31,6 @@ location / {
     
 ## TODO
 * Fix exif data and show on web
-* Treeshaking
 * Add a download button for original image
+* Show DownloadablePolaroid also on Mobile and set Size correctly
+* Add paging and endless scroll
