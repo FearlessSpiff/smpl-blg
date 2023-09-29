@@ -2,7 +2,7 @@
 import "@fontsource/oleo-script";
 import '@mdi/font/css/materialdesignicons.css'
 import Polaroid from './Polaroid.vue'
-import { mdiDownload } from '@mdi/js'
+import {mdiDownload} from '@mdi/js'
 
 export default {
   components: {Polaroid},
@@ -58,24 +58,30 @@ export default {
           :aspect-ratio="aspectRatio()"
           contain
       />
-      <v-row>
-        <v-col>
-          <v-btn
-              density="comfortable"
-              variant="text"
-              :icon="mdiDownload()"
-              color="gray"
-              :href="imageData.originalImage.url"
-              download
-          ></v-btn>
-        </v-col>
-        <v-col>
-          <v-card-text class="handwriting">
-            <h1 class="font-weight-thin">{{ imageData.name }}</h1>
-            <h5 class="font-weight-thin">{{ imageData.humanReadableDateTime }}</h5>
-          </v-card-text>
-        </v-col>
-      </v-row>
+      <v-card-text>
+        <div class="flex-hack"> <!-- messing with grid system destroys other layout, thus this hack -->
+          <v-tooltip text="Download original">
+            <template v-slot:activator="{ props }">
+              <v-btn
+                  v-bind="props"
+                  class="download-button"
+                  density="comfortable"
+                  variant="text"
+                  :icon="mdiDownload()"
+                  color="gray"
+                  :href="imageData.originalImage.url"
+                  download
+              ></v-btn>
+            </template>
+          </v-tooltip>
+          <div class="text">
+            <div class="handwriting">
+              <h1 class="font-weight-thin">{{ imageData.name }}</h1>
+              <h5 class="font-weight-thin">{{ imageData.humanReadableDateTime }}</h5>
+            </div>
+          </div>
+        </div>
+      </v-card-text>
     </v-card>
 
   </v-dialog>
@@ -93,6 +99,20 @@ export default {
 
 .handwriting {
   text-align: right !important;
+  display: block;
+}
+
+.flex-hack {
+  display: flex;
+}
+
+.text {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.download-button {
+  align-self: flex-end;
 }
 
 </style>
