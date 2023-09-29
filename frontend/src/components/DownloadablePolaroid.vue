@@ -11,7 +11,7 @@ export default {
       return mdiDownload
     },
     isPortrait() {
-      return (this.imageData.bigImage.height / this.imageData.bigImage.width).toFixed(1) >= 1;
+      return (this.imageData.bigImage.height / this.imageData.bigImage.width).toFixed(1) > 1;
     },
     aspectRatio() {
       return this.imageData.bigImage.width / this.imageData.bigImage.height;
@@ -42,15 +42,15 @@ export default {
 
 <template>
 
-  <v-dialog v-model="dialog" width="auto" height="auto">
+  <v-dialog v-model="dialog" :width="imageWidth + 40" height="auto">
 
     <template v-slot:activator="{ props }">
       <polaroid class="ma-2" :imageData="imageData" v-bind="props"/>
     </template>
 
-    <v-card class="polaroid ma-2">
+    <div class="polaroid ma-2">
       <v-img
-          class="ma-3"
+          class="image ma-3"
           :src="imageData.bigImage.url"
           :lazy-src="isPortrait()? 'lazy-portrait.jpg' : 'lazy-landscape.jpg'"
           :alt="imageData.name"
@@ -58,31 +58,29 @@ export default {
           :aspect-ratio="aspectRatio()"
           contain
       />
-      <v-card-text>
-        <div class="flex-hack"> <!-- messing with grid system destroys other layout, thus this hack -->
-          <v-tooltip text="Download Original">
-            <template v-slot:activator="{ props }">
-              <v-btn
-                  v-bind="props"
-                  class="download-button"
-                  density="comfortable"
-                  variant="text"
-                  :icon="mdiDownload()"
-                  color="gray"
-                  :href="imageData.originalImage.url"
-                  download
-              ></v-btn>
-            </template>
-          </v-tooltip>
-          <div class="text">
-            <div class="handwriting">
-              <h1 class="font-weight-thin">{{ imageData.name }}</h1>
-              <h5 class="font-weight-thin">{{ imageData.humanReadableDateTime }}</h5>
-            </div>
+      <div class="flex-hack">
+        <v-tooltip text="Download Original">
+          <template v-slot:activator="{ props }">
+            <v-btn
+                v-bind="props"
+                class="download-button"
+                density="comfortable"
+                variant="text"
+                :icon="mdiDownload()"
+                color="gray"
+                :href="imageData.originalImage.url"
+                download
+            ></v-btn>
+          </template>
+        </v-tooltip>
+        <div class="text">
+          <div class="handwriting ma-3">
+            <h1 class="font-weight-thin">{{ imageData.name }}</h1>
+            <h5 class="font-weight-thin">{{ imageData.humanReadableDateTime }}</h5>
           </div>
         </div>
-      </v-card-text>
-    </v-card>
+      </div>
+    </div>
 
   </v-dialog>
 </template>

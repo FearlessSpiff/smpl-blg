@@ -33,6 +33,14 @@ export default {
         default:
           return '280'
       }
+    },
+    imageToDisplay() {
+      switch (this.$vuetify.display.name) {
+        case 'xs':
+          return this.imageData.smallImage;
+        default:
+          return this.imageData.bigImage;
+      }
     }
   },
   props: ['imageData']
@@ -47,7 +55,7 @@ export default {
     <v-img
         :width="imageWidth"
         class="ma-3"
-        :src="imageData.smallImage.url"
+        :src="imageToDisplay.url"
         :lazy-src="isPortrait()? 'lazy-portrait.jpg' : 'lazy-landscape.jpg'"
         :aspect-ratio="aspectRatio()"
         :alt="imageData.name"
