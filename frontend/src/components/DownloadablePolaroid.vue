@@ -1,10 +1,15 @@
 <script>
 import "@fontsource/oleo-script";
+import '@mdi/font/css/materialdesignicons.css'
 import Polaroid from './Polaroid.vue'
+import { mdiDownload } from '@mdi/js'
 
 export default {
   components: {Polaroid},
   methods: {
+    mdiDownload() {
+      return mdiDownload
+    },
     isPortrait() {
       return (this.imageData.bigImage.height / this.imageData.bigImage.width).toFixed(1) >= 1;
     },
@@ -53,10 +58,24 @@ export default {
           :aspect-ratio="aspectRatio()"
           contain
       />
-      <v-card-text class="handwriting">
-        <h1 class="font-weight-thin">{{ imageData.name }}</h1>
-        <h5 class="font-weight-thin">{{ imageData.humanReadableDateTime }}</h5>
-      </v-card-text>
+      <v-row>
+        <v-col>
+          <v-btn
+              density="comfortable"
+              variant="text"
+              :icon="mdiDownload()"
+              color="gray"
+              :href="imageData.originalImage.url"
+              download
+          ></v-btn>
+        </v-col>
+        <v-col>
+          <v-card-text class="handwriting">
+            <h1 class="font-weight-thin">{{ imageData.name }}</h1>
+            <h5 class="font-weight-thin">{{ imageData.humanReadableDateTime }}</h5>
+          </v-card-text>
+        </v-col>
+      </v-row>
     </v-card>
 
   </v-dialog>

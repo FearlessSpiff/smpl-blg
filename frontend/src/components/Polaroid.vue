@@ -53,10 +53,14 @@ export default {
         :alt="imageData.name"
         contain
     />
-    <v-card-text class="handwriting">
-      <h1 class="font-weight-thin">{{ imageData.name }}</h1>
-      <h5 class="font-weight-thin">{{ imageData.humanReadableDateTime }}</h5>
-    </v-card-text>
+    <v-row>
+      <v-col>
+        <v-card-text class="handwriting">
+          <h1 class="font-weight-thin">{{ imageData.name }}</h1>
+          <h5 class="font-weight-thin">{{ imageData.humanReadableDateTime }}</h5>
+        </v-card-text>
+      </v-col>
+    </v-row>
   </v-card>
 
 </template>
