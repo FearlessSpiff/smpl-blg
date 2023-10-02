@@ -1,0 +1,19 @@
+[Unit]
+Description=smpl-blog 
+After=syslog.target network.target
+
+[Service]
+SuccessExitStatus=143
+
+User=user
+Group=group
+
+Type=simple
+
+Environment="JAVA_HOME=/usr/lib/jvm/default"
+WorkingDirectory=/media/Data/Blog/prod/app/
+ExecStart=/usr/lib/jvm/default/bin/java -Dspring.profiles.active=prod -jar backend-0.0.1-SNAPSHOT.jar
+ExecStop=/bin/kill -15 $MAINPID
+
+[Install]
+WantedBy=multi-user.target
