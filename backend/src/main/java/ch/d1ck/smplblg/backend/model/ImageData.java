@@ -2,7 +2,7 @@ package ch.d1ck.smplblg.backend.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 
 public record ImageData(
         String id,
@@ -11,8 +11,13 @@ public record ImageData(
         Image smallImage,
         Image bigImage,
         @JsonIgnore
-        LocalDateTime dateTime,
+        Date date,
         String humanReadableDateTime,
-        String cameraModel
+        String cameraModel,
+        String isoSpeed,
+        String shutterSpeed,
+        String aperture,
+        String focalLength,
+        String focalLength35mmEquiv
 
 ) {}

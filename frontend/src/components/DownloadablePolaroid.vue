@@ -15,6 +15,9 @@ export default {
     },
     aspectRatio() {
       return this.imageData.bigImage.width / this.imageData.bigImage.height;
+    },
+    thirtyFiveMmEquivalent() {
+      return this.imageData.focalLength35mmEquiv ? `(${this.imageData.focalLength35mmEquiv}mm 35mm-Eq)` : ``;
     }
   },
   data() {
@@ -77,7 +80,10 @@ export default {
           <div class="handwriting ma-3">
             <h1 class="font-weight-thin">{{ imageData.name }}</h1>
             <h5 class="font-weight-thin">{{ imageData.humanReadableDateTime }}</h5>
-            <h5 class="font-weight-thin">{{ imageData.cameraModel }}</h5>
+            <h5 class="font-weight-thin">{{ imageData.cameraModel }},
+              f/{{ imageData.aperture }} {{ imageData.shutterSpeed }}s ISO
+              {{ imageData.isoSpeed }} {{ imageData.focalLength }}mm {{ thirtyFiveMmEquivalent() }}
+            </h5>
           </div>
         </div>
       </div>

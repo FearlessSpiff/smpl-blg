@@ -2,12 +2,17 @@ package ch.d1ck.smplblg.backend.service;
 
 import ch.d1ck.smplblg.backend.model.Image;
 import ch.d1ck.smplblg.backend.model.ImageData;
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.imaging.ImageProcessingException;
+import com.drew.metadata.Metadata;
+import com.drew.metadata.MetadataException;
+import com.drew.metadata.exif.ExifIFD0Directory;
+import com.drew.metadata.exif.ExifSubIFDDirectory;
 import org.apache.commons.imaging.ImageReadException;
 import org.apache.commons.imaging.ImageWriteException;
 import org.apache.commons.imaging.Imaging;
 import org.apache.commons.imaging.formats.jpeg.JpegImageMetadata;
 import org.apache.commons.imaging.formats.jpeg.exif.ExifRewriter;
-import org.apache.commons.imaging.formats.tiff.taginfos.TagInfo;
 import org.imgscalr.Scalr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,10 +34,8 @@ import java.util.*;
 import java.util.stream.Stream;
 
 import static ch.d1ck.smplblg.backend.service.ImageSize.*;
+import static com.drew.metadata.exif.ExifDirectoryBase.*;
 import static java.util.Comparator.comparing;
-import static org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants.EXIF_TAG_DATE_TIME_ORIGINAL;
-import static org.apache.commons.imaging.formats.tiff.constants.TiffTagConstants.TIFF_TAG_MODEL;
-import static org.apache.commons.imaging.formats.tiff.constants.TiffTagConstants.TIFF_TAG_ORIENTATION;
 import static org.imgscalr.Scalr.Method.ULTRA_QUALITY;
 
 @Service
@@ -43,7 +46,7 @@ public class ImageMagic {
     @Value("${image-path}")
     private String imagePath;
 
-    private final SortedSet<ImageData> images = new TreeSet<>(comparing(ImageData::dateTime).reversed());
+    private final SortedSet<ImageData> images = new TreeSet<>(comparing(ImageData::date).reversed());
     private final Collection<String> supportedFileEndings = List.of("JPEG", "JPG");
     private final DateTimeFormatter exifParser = DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss");
     private final DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
@@ -104,10 +107,12 @@ public class ImageMagic {
 
         // we will have wrong height and width without the orientation in the original image data, but accept it as we don't use it
         Image originalImage = retrieveImageInfo(ORIGINAL, directoryPath, imageFiles);
-        JpegImageMetadata metadata = retrieveJpegMetadata(originalImage.localFile());
 
-        Image smallImage = retrieveImageInfo(SMALL, directoryPath, imageFiles, Integer.valueOf(exifOf(metadata, TIFF_TAG_ORIENTATION)));
-        Image bigImage = retrieveImageInfo(BIG, directoryPath, imageFiles, Integer.valueOf(exifOf(metadata, TIFF_TAG_ORIENTATION)));
+        Metadata metadata = retrieveJpegMetadata(originalImage.localFile());
+        ExifSubIFDDirectory exifSubIFDDirectory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
+
+        Image smallImage = retrieveImageInfo(SMALL, directoryPath, imageFiles, getOrientation(metadata));
+        Image bigImage = retrieveImageInfo(BIG, directoryPath, imageFiles, getOrientation(metadata));
 
         ImageData imageData = new ImageData(
                 directoryPath.getFileName().toString(),
@@ -115,10 +120,14 @@ public class ImageMagic {
                 originalImage,
                 smallImage,
                 bigImage,
-                dateTimeOf(exifOf(metadata, EXIF_TAG_DATE_TIME_ORIGINAL)),
-                humanReadableOf(exifOf(metadata, EXIF_TAG_DATE_TIME_ORIGINAL)),
-                exifOf(metadata, TIFF_TAG_MODEL)
-
+                exifSubIFDDirectory.getDateOriginal(),
+                humanReadableOf(exifSubIFDDirectory.getString(TAG_DATETIME_ORIGINAL)),
+                metadata.getFirstDirectoryOfType(ExifIFD0Directory.class).getString(TAG_MODEL),
+                exifSubIFDDirectory.getString(TAG_ISO_EQUIVALENT),
+                exifSubIFDDirectory.getString(TAG_EXPOSURE_TIME),
+                exifSubIFDDirectory.getString(TAG_FNUMBER),
+                exifSubIFDDirectory.getString(TAG_FOCAL_LENGTH),
+                exifSubIFDDirectory.getString(TAG_35MM_FILM_EQUIV_FOCAL_LENGTH)
         );
 
         LOGGER.info("adding '" + imageData + "' to cache ...");
@@ -152,7 +161,7 @@ public class ImageMagic {
         try {
             // prepare
             BufferedImage originalImage = ImageIO.read(originalFile);
-            JpegImageMetadata metadata = retrieveJpegMetadata(originalFile);
+            JpegImageMetadata metadata = retrieveJpegMetadataForCopying(originalFile);
 
             // resize to temp
             BufferedImage resizedImage = Scalr.resize(originalImage, ULTRA_QUALITY, imageSize.targetSize());
@@ -188,7 +197,7 @@ public class ImageMagic {
         }
     }
 
-    private static JpegImageMetadata retrieveJpegMetadata(File imageFile) {
+    private static JpegImageMetadata retrieveJpegMetadataForCopying(File imageFile) {
         try {
             return (JpegImageMetadata) Imaging.getMetadata(imageFile);
         } catch (IOException | ImageReadException e) {
@@ -196,10 +205,20 @@ public class ImageMagic {
         }
     }
 
-    private static String exifOf(JpegImageMetadata jpegImageMetadata, TagInfo exifTag) {
+    private static Metadata retrieveJpegMetadata(File imageFile) {
         try {
-            return jpegImageMetadata.findEXIFValueWithExactMatch(exifTag) != null ? jpegImageMetadata.findEXIFValueWithExactMatch(exifTag).getValue().toString().trim() : "";
-        } catch (ImageReadException e) {
+            return ImageMetadataReader.readMetadata(imageFile);
+        } catch (IOException | ImageProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static int getOrientation(Metadata metadata) {
+        try {
+            ExifIFD0Directory exifIFD0Directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
+
+            return exifIFD0Directory.getInt(TAG_ORIENTATION);
+        } catch (MetadataException e) {
             throw new RuntimeException(e);
         }
     }
