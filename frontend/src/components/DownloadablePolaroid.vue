@@ -30,7 +30,7 @@ export default {
 
         return maxHeight / aspect;
       } else {
-        return this.$vuetify.display.width * 0.8;
+        return this.$vuetify.display.width * 0.75;
       }
     }
   },
