@@ -77,6 +77,7 @@ export default {
           <div class="handwriting ma-3">
             <h1 class="font-weight-thin">{{ imageData.name }}</h1>
             <h5 class="font-weight-thin">{{ imageData.humanReadableDateTime }}</h5>
+            <h5 class="font-weight-thin">{{ imageData.cameraModel }}</h5>
           </div>
         </div>
       </div>

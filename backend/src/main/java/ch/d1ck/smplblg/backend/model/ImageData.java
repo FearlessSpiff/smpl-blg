@@ -13,6 +13,6 @@ public record ImageData(
         @JsonIgnore
         LocalDateTime dateTime,
         String humanReadableDateTime,
-        String model
+        String cameraModel
 
 ) {}

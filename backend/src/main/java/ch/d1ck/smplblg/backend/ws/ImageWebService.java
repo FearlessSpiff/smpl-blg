@@ -54,7 +54,5 @@ public class ImageWebService {
                     .notFound()
                     .build();
         }
-
-
     }
 }
