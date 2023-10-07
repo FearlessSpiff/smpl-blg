@@ -62,16 +62,20 @@ public class ImageMagic {
     }
 
     @Scheduled(initialDelay = 0, fixedDelay = 300000)
-    private void scanForNewImages() {
+    private void scanForNewOrChangedImages() {
         try (Stream<Path> stream = Files.list(Paths.get(this.imagePath))) {
-            stream.filter(Files::isDirectory).forEach(this::processDirectory);
-            LOGGER.info("finished scanning for new images");
+            // remove deleted or renamed
+            this.images.removeIf(imageData -> !imageData.originalImage().localFile().exists());
+
+            // scan for new or renamed
+            stream.filter(Files::isDirectory).forEach(this::addDirectoryToCache);
+            LOGGER.info("finished scanning...");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void processDirectory(Path directoryPath) {
+    private void addDirectoryToCache(Path directoryPath) {
         if (directoryPath.getFileName().toString().startsWith(".")) {
             LOGGER.debug("skipping hidden directory '" + directoryPath + "'");
             return;
@@ -81,9 +85,9 @@ public class ImageMagic {
             LOGGER.debug("skipping directory '" + directoryPath.getFileName() + "' as it is empty");
         } else if (numberOfFilesInDir == 1) {
             processNewImage(directoryPath);
-            addToCache(directoryPath);
+            addImageToCache(directoryPath);
         } else if (numberOfFilesInDir >= 3) {
-            addToCache(directoryPath);
+            addImageToCache(directoryPath);
         }
     }
 
@@ -97,7 +101,7 @@ public class ImageMagic {
         resizeTo(BIG, directoryPath, originalFile, imageFiles[0]);
     }
 
-    private void addToCache(Path directoryPath) {
+    private void addImageToCache(Path directoryPath) {
         if (isAlreadyCached(directoryPath)) {
             LOGGER.debug("skipping already cached image '" + directoryPath.getFileName() + "'");
             return;
@@ -223,6 +227,7 @@ public class ImageMagic {
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static Image retrieveImageInfo(ImageSize imageSize, Path directoryPath, String[] imageFiles) {
         return retrieveImageInfo(imageSize, directoryPath, imageFiles, null);
     }
