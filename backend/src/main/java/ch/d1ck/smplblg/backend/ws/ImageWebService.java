@@ -39,8 +39,14 @@ public class ImageWebService {
             @PathVariable String path) {
 
         // Security: Validate inputs to prevent path traversal
+        if (id == null || path == null || id.isBlank() || path.isBlank()) {
+            LOGGER.warn("Rejected request with null or blank parameters: id={}, path={}", id, path);
+            return ResponseEntity.badRequest().build();
+        }
+
         if (id.contains("..") || path.contains("..") ||
-                id.contains("/") || id.contains("\\")) {
+                id.contains("/") || id.contains("\\") ||
+                path.contains("\\")) {
             LOGGER.warn("Rejected suspicious image request: id={}, path={}", id, path);
             return ResponseEntity.badRequest().build();
         }

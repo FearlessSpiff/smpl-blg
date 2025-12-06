@@ -1,9 +1,10 @@
 package ch.d1ck.smplblg.backend.service;
 
+import ch.d1ck.smplblg.backend.exception.ImageMetadataException;
+import ch.d1ck.smplblg.backend.exception.ImageProcessingException;
 import ch.d1ck.smplblg.backend.model.Image;
 import ch.d1ck.smplblg.backend.model.ImageData;
 import com.drew.imaging.ImageMetadataReader;
-import com.drew.imaging.ImageProcessingException;
 import com.drew.metadata.Metadata;
 import com.drew.metadata.MetadataException;
 import com.drew.metadata.exif.ExifIFD0Directory;
@@ -58,6 +59,14 @@ public class ImageMagic {
   }
 
   public InputStreamResource getImage(String path) throws IOException {
+    if (path.contains("..") || path.contains("\\")) {
+      throw new IllegalArgumentException("Invalid path");
+    }
+    Path safePath = Paths.get(this.imagePath, path).normalize();
+    if (!safePath.startsWith(Paths.get(this.imagePath).normalize())) {
+      throw new SecurityException("Path traversal attempt detected");
+    }
+
     FileUrlResource fileUrlResource = new FileUrlResource(this.imagePath + "/" + path);
 
     return new InputStreamResource(fileUrlResource.getInputStream());
@@ -168,6 +177,9 @@ public class ImageMagic {
     try {
       // prepare
       BufferedImage originalImage = ImageIO.read(originalFile);
+      if (originalImage == null) {
+        throw new ImageProcessingException("Failed to read original image (returned null): " + originalFile);
+      }
       JpegImageMetadata metadata = retrieveJpegMetadataForCopying(originalFile);
 
       // resize to temp
@@ -176,16 +188,20 @@ public class ImageMagic {
       ImageIO.write(resizedImage, "jpeg", tempResizedFile);
 
       // use temp to write exif to finished file
-      OutputStream os = new BufferedOutputStream(
-          new FileOutputStream(directoryPath + "/" + imageSize.filePrefix() + originalFilename));
-      new ExifRewriter().updateExifMetadataLossless(tempResizedFile, os, metadata.getExif().getOutputSet());
+      try (OutputStream os = new BufferedOutputStream(
+          new FileOutputStream(directoryPath + "/" + imageSize.filePrefix() + originalFilename))) {
+        new ExifRewriter().updateExifMetadataLossless(tempResizedFile, os, metadata.getExif().getOutputSet());
+      }
       deleteFile(tempResizedFile);
 
       LOGGER.info("Resized original file '{}' to '{}'", originalFile, imageSize);
-    } catch (IOException e) {
+    } catch (Exception e) {
+      String errorMsg = String.format("Failed to resize image '%s' to size '%s'", originalFile, imageSize);
+      LOGGER.error(errorMsg, e);
       if (tempResizedFile != null && tempResizedFile.exists()) {
         deleteFile(tempResizedFile);
       }
+      throw new ImageProcessingException(errorMsg, e);
     }
   }
 
@@ -201,7 +217,10 @@ public class ImageMagic {
     if (pristineOriginalFile.renameTo(originalFile)) {
       return originalFile;
     } else {
-      throw new RuntimeException("failed renaming original file in directory = '" + directoryPath.getFileName() + "'");
+      String errorMsg = String.format("Failed to rename original file '%s' to '%s' in directory '%s'",
+          imageFile, ORIGINAL.filePrefix() + imageFile, directoryPath.getFileName());
+      LOGGER.error(errorMsg);
+      throw new ImageProcessingException(errorMsg);
     }
   }
 
@@ -209,7 +228,9 @@ public class ImageMagic {
     try (Stream<Path> stream = Files.list(directoryPath)) {
       return stream.count();
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      String errorMsg = String.format("Failed to count files in directory: %s", directoryPath);
+      LOGGER.error(errorMsg, e);
+      throw new ImageProcessingException(errorMsg, e);
     }
   }
 
@@ -217,25 +238,34 @@ public class ImageMagic {
     try {
       return (JpegImageMetadata) Imaging.getMetadata(imageFile);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      String errorMsg = String.format("Failed to retrieve JPEG metadata for copying from file: %s", imageFile);
+      LOGGER.error(errorMsg, e);
+      throw new ImageMetadataException(errorMsg, e);
     }
   }
 
   private static Metadata retrieveJpegMetadata(File imageFile) {
     try {
       return ImageMetadataReader.readMetadata(imageFile);
-    } catch (IOException | ImageProcessingException e) {
-      throw new RuntimeException(e);
+    } catch (IOException | com.drew.imaging.ImageProcessingException e) {
+      String errorMsg = String.format("Failed to read JPEG metadata from file: %s", imageFile);
+      LOGGER.error(errorMsg, e);
+      throw new ImageMetadataException(errorMsg, e);
     }
   }
 
   private static int getOrientation(Metadata metadata) {
     try {
       ExifIFD0Directory exifIFD0Directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
-
+      if (exifIFD0Directory == null) {
+        LOGGER.warn("No EXIF IFD0 directory found in metadata, using default orientation");
+        return 1; // Default orientation
+      }
       return exifIFD0Directory.getInt(TAG_ORIENTATION);
     } catch (MetadataException e) {
-      throw new RuntimeException(e);
+      String errorMsg = "Failed to retrieve orientation from metadata";
+      LOGGER.error(errorMsg, e);
+      throw new ImageMetadataException(errorMsg, e);
     }
   }
 
@@ -248,15 +278,24 @@ public class ImageMagic {
                                          Integer orientation) {
     Optional<String> fileName = imageSize.matchingPrefix(imageFiles);
     if (fileName.isEmpty()) {
-      throw new RuntimeException("cannot find a match for imageSize = '" + imageSize + "' and imageFiles = '"
-          + Arrays.toString(imageFiles) + "'");
+      String errorMsg = String.format("Cannot find a match for imageSize '%s' in files %s",
+          imageSize, Arrays.toString(imageFiles));
+      LOGGER.error(errorMsg);
+      throw new ImageProcessingException(errorMsg);
     }
     File imageFile = Paths.get(directoryPath.toString(), fileName.get()).toFile();
     BufferedImage bufferedImage;
     try {
       bufferedImage = ImageIO.read(imageFile);
+      if (bufferedImage == null) {
+        String errorMsg = String.format("Failed to read image file (returned null): %s", imageFile);
+        LOGGER.error(errorMsg);
+        throw new ImageProcessingException(errorMsg);
+      }
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      String errorMsg = String.format("Failed to read image file: %s", imageFile);
+      LOGGER.error(errorMsg, e);
+      throw new ImageProcessingException(errorMsg, e);
     }
     // workaround to handle image orientation, see
     // https://www.awaresystems.be/imaging/tiff/tifftags/orientation.html
