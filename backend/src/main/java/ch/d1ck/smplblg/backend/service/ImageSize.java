@@ -22,12 +22,17 @@ public enum ImageSize {
     public String filePrefix() {
         return this.filePrefix;
     }
+
     public int targetSize() {
         return this.targetSize;
     }
 
     public Optional<String> matchingPrefix(String[] fileList) {
-        return stream(fileList).filter(fileName -> fileName.startsWith(this.filePrefix)).findFirst();
+        if (fileList == null) {
+            return Optional.empty();
+        }
+        return stream(fileList).filter(fileName ->
+                fileName.startsWith(this.filePrefix)).findFirst();
     }
 
 }

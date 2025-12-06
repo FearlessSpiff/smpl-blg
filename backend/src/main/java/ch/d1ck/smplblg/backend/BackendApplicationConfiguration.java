@@ -13,7 +13,7 @@ public class BackendApplicationConfiguration {
         CommonsRequestLoggingFilter filter
                 = new CommonsRequestLoggingFilter();
         filter.setIncludeQueryString(true);
-        filter.setIncludePayload(true);
+        filter.setIncludePayload(false);
         filter.setMaxPayloadLength(10000);
         filter.setIncludeHeaders(false);
         filter.setAfterMessagePrefix("REQUEST DATA: ");

@@ -6,8 +6,8 @@ import java.io.File;
 
 public record Image (
     String url,
-    String height,
-    String width,
+    int height,
+    int width,
     @JsonIgnore
     File localFile
 

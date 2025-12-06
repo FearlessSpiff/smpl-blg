@@ -4,15 +4,11 @@ import ch.d1ck.smplblg.backend.model.ImageData;
 import ch.d1ck.smplblg.backend.service.ImageMagic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Collection;
 
@@ -21,38 +17,49 @@ import static org.springframework.http.CacheControl.maxAge;
 import static org.springframework.http.MediaType.IMAGE_JPEG;
 import static org.springframework.http.MediaType.IMAGE_JPEG_VALUE;
 
-@Controller
+@RestController
 @RequestMapping("/api/v1")
 public class ImageWebService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ImageMagic.class);
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(ImageWebService.class);
     private final ImageMagic imageMagic;
 
-    @Autowired
     public ImageWebService(ImageMagic imageMagic) {
         this.imageMagic = imageMagic;
     }
 
     @GetMapping("/images")
-    @ResponseBody
     public Collection<ImageData> images() {
         return this.imageMagic.images();
     }
 
     @GetMapping(value = "/images/{id}/{path}", produces = IMAGE_JPEG_VALUE)
-    public ResponseEntity<InputStreamResource> getImage(@PathVariable(value = "id") String id, @PathVariable(value = "path") String path) {
-        LOGGER.info("got file: " + path);
+    public ResponseEntity<InputStreamResource> getImage(
+            @PathVariable String id,
+            @PathVariable String path) {
+
+        // Security: Validate inputs to prevent path traversal
+        if (id.contains("..") || path.contains("..") ||
+                id.contains("/") || id.contains("\\")) {
+            LOGGER.warn("Rejected suspicious image request: id={}, path={}", id, path);
+            return ResponseEntity.badRequest().build();
+        }
+
+        LOGGER.debug("Serving image: {}/{}", id, path);
+
         try {
+            InputStreamResource resource = this.imageMagic.getImage(id + "/" + path);
             return ResponseEntity
                     .ok()
                     .cacheControl(maxAge(365, DAYS))
                     .contentType(IMAGE_JPEG)
-                    .body(this.imageMagic.getImage(id + "/" + path));
+                    .body(resource);
+        } catch (FileNotFoundException e) {
+            LOGGER.debug("Image not found: {}/{}", id, path);
+            return ResponseEntity.notFound().build();
         } catch (IOException e) {
-            return ResponseEntity
-                    .notFound()
-                    .build();
+            LOGGER.error("Error serving image: {}/{}", id, path, e);
+            return ResponseEntity.internalServerError().build();
         }
     }
 }

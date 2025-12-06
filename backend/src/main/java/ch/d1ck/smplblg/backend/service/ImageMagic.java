@@ -29,6 +29,7 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import static ch.d1ck.smplblg.backend.service.ImageSize.*;
@@ -44,13 +45,16 @@ public class ImageMagic {
   @Value("${image-path}")
   private String imagePath;
 
-  private final SortedSet<ImageData> images = new TreeSet<>(comparing(ImageData::date).reversed());
+  private final Set<ImageData> images = ConcurrentHashMap.newKeySet();
   private final Collection<String> supportedFileEndings = List.of("JPEG", "JPG");
   private final DateTimeFormatter exifParser = DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss");
   private final DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
+
   public Collection<ImageData> images() {
-    return images;
+    return images.stream()
+        .sorted(comparing(ImageData::date).reversed())
+        .toList(); // Returns immutable copy
   }
 
   public InputStreamResource getImage(String path) throws IOException {
@@ -67,9 +71,10 @@ public class ImageMagic {
 
       // scan for new or renamed
       stream.filter(Files::isDirectory).forEach(this::addDirectoryToCache);
-      LOGGER.info("finished scanning...");
+      LOGGER.info("Finished scanning, found {} images", images.size());
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      LOGGER.error("Error scanning for images in: {}", this.imagePath, e);
+      // Don't throw - let scheduler continue
     }
   }
 
@@ -158,8 +163,8 @@ public class ImageMagic {
         .anyMatch(imageData -> Objects.equals(imageData.id(), directoryPath.getFileName().toString()));
   }
 
-  @SuppressWarnings("ResultOfMethodCallIgnored")
   private static void resizeTo(ImageSize imageSize, Path directoryPath, File originalFile, String originalFilename) {
+    File tempResizedFile = null;
     try {
       // prepare
       BufferedImage originalImage = ImageIO.read(originalFile);
@@ -167,18 +172,26 @@ public class ImageMagic {
 
       // resize to temp
       BufferedImage resizedImage = Scalr.resize(originalImage, ULTRA_QUALITY, imageSize.targetSize());
-      File tempResizedFile = new File(directoryPath + "/temp-" + originalFilename);
+      tempResizedFile = new File(directoryPath + "/temp-" + originalFilename);
       ImageIO.write(resizedImage, "jpeg", tempResizedFile);
 
       // use temp to write exif to finished file
       OutputStream os = new BufferedOutputStream(
           new FileOutputStream(directoryPath + "/" + imageSize.filePrefix() + originalFilename));
       new ExifRewriter().updateExifMetadataLossless(tempResizedFile, os, metadata.getExif().getOutputSet());
-      tempResizedFile.delete();
+      deleteFile(tempResizedFile);
 
-      LOGGER.info("resized original file '" + originalFile + "' to '" + imageSize + "'");
+      LOGGER.info("Resized original file '{}' to '{}'", originalFile, imageSize);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      if (tempResizedFile != null && tempResizedFile.exists()) {
+        deleteFile(tempResizedFile);
+      }
+    }
+  }
+
+  private static void deleteFile(File tempResizedFile) {
+    if (!tempResizedFile.delete()) {
+      LOGGER.warn("Failed to delete temp file: {}", tempResizedFile);
     }
   }
 
@@ -232,7 +245,7 @@ public class ImageMagic {
   }
 
   private static Image retrieveImageInfo(ImageSize imageSize, Path directoryPath, String[] imageFiles,
-      Integer orientation) {
+                                         Integer orientation) {
     Optional<String> fileName = imageSize.matchingPrefix(imageFiles);
     if (fileName.isEmpty()) {
       throw new RuntimeException("cannot find a match for imageSize = '" + imageSize + "' and imageFiles = '"
@@ -258,8 +271,8 @@ public class ImageMagic {
     }
     return new Image(
         "api/v1/images/" + directoryPath.getFileName() + "/" + imageFile.getName(),
-        Integer.toString(height),
-        Integer.toString(width),
+        height,
+        width,
         imageFile);
   }
 
