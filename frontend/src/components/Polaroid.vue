@@ -43,7 +43,23 @@ export default {
       }
     }
   },
-  props: ['imageData']
+  props: {
+    imageData: {
+      type: Object,
+      required: true,
+      validator(value) {
+        return value.smallImage &&
+               value.bigImage &&
+               value.name &&
+               typeof value.smallImage.url === 'string' &&
+               typeof value.bigImage.url === 'string' &&
+               typeof value.smallImage.width === 'number' &&
+               typeof value.smallImage.height === 'number' &&
+               typeof value.bigImage.width === 'number' &&
+               typeof value.bigImage.height === 'number';
+      }
+    }
+  }
 
 }
 

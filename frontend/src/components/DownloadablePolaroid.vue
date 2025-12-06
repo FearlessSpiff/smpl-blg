@@ -1,6 +1,5 @@
 <script>
 import "@fontsource/oleo-script";
-import '@mdi/font/css/materialdesignicons.css'
 import Polaroid from './Polaroid.vue'
 import {mdiDownload} from '@mdi/js'
 
@@ -37,7 +36,22 @@ export default {
       }
     }
   },
-  props: ['imageData']
+  props: {
+    imageData: {
+      type: Object,
+      required: true,
+      validator(value) {
+        return value.bigImage &&
+               value.originalImage &&
+               value.name &&
+               typeof value.bigImage.url === 'string' &&
+               typeof value.originalImage.url === 'string' &&
+               typeof value.bigImage.width === 'number' &&
+               typeof value.bigImage.height === 'number' &&
+               typeof value.name === 'string';
+      }
+    }
+  }
 
 }
 
