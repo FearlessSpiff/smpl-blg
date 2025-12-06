@@ -59,6 +59,14 @@ public class ImageMagic {
   }
 
   public InputStreamResource getImage(String path) throws IOException {
+    if (path.contains("..") || path.contains("\\")) {
+      throw new IllegalArgumentException("Invalid path");
+    }
+    Path safePath = Paths.get(this.imagePath, path).normalize();
+    if (!safePath.startsWith(Paths.get(this.imagePath).normalize())) {
+      throw new SecurityException("Path traversal attempt detected");
+    }
+
     FileUrlResource fileUrlResource = new FileUrlResource(this.imagePath + "/" + path);
 
     return new InputStreamResource(fileUrlResource.getInputStream());
