@@ -2,6 +2,7 @@
 import "@fontsource/oleo-script";
 import Polaroid from './Polaroid.vue'
 import {mdiDownload} from '@mdi/js'
+import { isPortrait, aspectRatio } from '../utils/imageHelpers.js';
 import { DESKTOP_WIDTH_MULTIPLIER, DESKTOP_HEIGHT_MULTIPLIER } from '../utils/constants.js';
 
 export default {
@@ -10,12 +11,6 @@ export default {
   methods: {
     getDownloadIcon() {
       return mdiDownload
-    },
-    isPortrait() {
-      return (this.imageData.bigImage.height / this.imageData.bigImage.width).toFixed(1) >= 1;
-    },
-    aspectRatio() {
-      return this.imageData.bigImage.width / this.imageData.bigImage.height;
     },
     thirtyFiveMmEquivalent() {
       return this.imageData.focalLength35mmEquiv ? `(${this.imageData.focalLength35mmEquiv}mm 35mm-Eq)` : ``;
@@ -27,8 +22,14 @@ export default {
     }
   },
   computed: {
+    isPortraitImage() {
+      return isPortrait(this.imageData.bigImage.width, this.imageData.bigImage.height);
+    },
+    imageAspectRatio() {
+      return aspectRatio(this.imageData.bigImage.width, this.imageData.bigImage.height);
+    },
     imageWidth() {
-      if (this.isPortrait()) {
+      if (this.isPortraitImage) {
         const aspect = this.imageData.bigImage.height / this.imageData.bigImage.width;
         const maxHeight = this.$vuetify.display.height * DESKTOP_HEIGHT_MULTIPLIER;
 
@@ -71,10 +72,10 @@ export default {
       <v-img
           class="ma-3"
           :src="imageData.bigImage.url"
-          :lazy-src="isPortrait()? 'lazy-portrait.jpg' : 'lazy-landscape.jpg'"
+          :lazy-src="isPortraitImage ? 'lazy-portrait.jpg' : 'lazy-landscape.jpg'"
           :alt="imageData.name"
           :width="imageWidth"
-          :aspect-ratio="aspectRatio()"
+          :aspect-ratio="imageAspectRatio"
           contain
       />
       <div class="flex-hack">

@@ -10,15 +10,13 @@ export default {
       degree: (Math.random() < 0.5 ? -1 : 1) * POLAROID_ROTATION_DEGREES * Math.random()
     }
   },
-  methods: {
-    isPortrait() {
-      return (this.imageData.smallImage.height / this.imageData.smallImage.width).toFixed(1) >= 1;
-    },
-    aspectRatio() {
-      return this.imageData.smallImage.width / this.imageData.smallImage.height;
-    }
-  },
   computed: {
+    isPortraitImage() {
+      return isPortrait(this.imageData.smallImage.width, this.imageData.smallImage.height);
+    },
+    imageAspectRatio() {
+      return aspectRatio(this.imageData.smallImage.width, this.imageData.smallImage.height);
+    },
     rotate() {
       return {transform: 'rotate(' + this.degree + 'deg)'}
     },
@@ -75,8 +73,8 @@ export default {
         :width="imageWidth"
         class="ma-3"
         :src="imageToDisplay.url"
-        :lazy-src="isPortrait()? 'lazy-portrait.jpg' : 'lazy-landscape.jpg'"
-        :aspect-ratio="aspectRatio()"
+        :lazy-src="isPortraitImage ? 'lazy-portrait.jpg' : 'lazy-landscape.jpg'"
+        :aspect-ratio="imageAspectRatio"
         :alt="imageData.name"
         contain
     />
