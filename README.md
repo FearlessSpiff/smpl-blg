@@ -16,13 +16,21 @@
 ## How to nginx
 Use something like this to proxypass to backend and to (optionally) serve the images from nginx directly:
 ```
-location ~* ^/api/v1/images/.*\.(jpeg|jpg) {
+location ~* ^/api/v1/images/[^/]+/[^/]+\.(jpeg|jpg|png|gif|webp)$ {
     access_log off;
     expires 365d;
-
+    
+    # Only allow GET/HEAD
+    limit_except GET HEAD {
+        deny all;
+    }
+    
     rewrite ^/api/v1/images/(.*)$ /$1 break;
-    root <<path/to/images>>;
-} 
+    root /home/htpc/Blog;
+    
+    # Ensure no directory listing
+    autoindex off;
+}
 
 location / {
     proxy_pass http://<<backend-ip>>:<<port>>;
