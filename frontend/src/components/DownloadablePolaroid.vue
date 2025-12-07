@@ -2,11 +2,13 @@
 import "@fontsource/oleo-script";
 import Polaroid from './Polaroid.vue'
 import {mdiDownload} from '@mdi/js'
+import { DESKTOP_WIDTH_MULTIPLIER, DESKTOP_HEIGHT_MULTIPLIER } from '../utils/constants.js';
 
 export default {
+  name: 'DownloadablePolaroid',
   components: {Polaroid},
   methods: {
-    mdiDownload() {
+    getDownloadIcon() {
       return mdiDownload
     },
     isPortrait() {
@@ -28,11 +30,11 @@ export default {
     imageWidth() {
       if (this.isPortrait()) {
         const aspect = this.imageData.bigImage.height / this.imageData.bigImage.width;
-        const maxHeight = this.$vuetify.display.height * 0.8;
+        const maxHeight = this.$vuetify.display.height * DESKTOP_HEIGHT_MULTIPLIER;
 
         return maxHeight / aspect;
       } else {
-        return this.$vuetify.display.width * 0.75;
+        return this.$vuetify.display.width * DESKTOP_WIDTH_MULTIPLIER;
       }
     }
   },
@@ -83,7 +85,7 @@ export default {
                 class="download-button"
                 density="comfortable"
                 variant="text"
-                :icon="mdiDownload()"
+                :icon="getDownloadIcon()"
                 color="gray"
                 :href="imageData.originalImage.url"
                 download

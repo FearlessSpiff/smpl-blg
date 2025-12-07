@@ -1,6 +1,7 @@
 <script>
 import ImageGallery from './components/ImageGallery.vue'
 export default {
+  name: 'App',
   components: {ImageGallery}
 }
 </script>

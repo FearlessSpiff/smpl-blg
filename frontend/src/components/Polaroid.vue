@@ -1,10 +1,13 @@
 <script>
 import "@fontsource/oleo-script";
+import { isPortrait, aspectRatio } from '../utils/imageHelpers.js';
+import { POLAROID_WIDTH, POLAROID_ROTATION_DEGREES, MOBILE_WIDTH_MULTIPLIER } from '../utils/constants.js';
 
 export default {
+  name: 'Polaroid',
   data() {
     return {
-      degree: (Math.random() < 0.5 ? -5 : 5) * Math.random()
+      degree: (Math.random() < 0.5 ? -1 : 1) * POLAROID_ROTATION_DEGREES * Math.random()
     }
   },
   methods: {
@@ -23,15 +26,15 @@ export default {
       switch (this.$vuetify.display.name) {
         case 'xs':
         case 'sm':
-          return this.$vuetify.display.width * 0.8
+          return this.$vuetify.display.width * MOBILE_WIDTH_MULTIPLIER
         case 'md':
-          return '400'
+          return POLAROID_WIDTH.MD
         case 'lg':
         case 'xl':
         case 'xxl':
-          return '500'
+          return POLAROID_WIDTH.LG
         default:
-          return '280'
+          return POLAROID_WIDTH.DEFAULT
       }
     },
     imageToDisplay() {
