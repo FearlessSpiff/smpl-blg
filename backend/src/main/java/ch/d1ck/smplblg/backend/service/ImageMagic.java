@@ -46,6 +46,9 @@ public class ImageMagic {
   @Value("${image-path}")
   private String imagePath;
 
+  @Value("${camera.skip-35mm-equivalent:}")
+  private List<String> cameraModelsToSkip35mm;
+
   private final Set<ImageData> images = ConcurrentHashMap.newKeySet();
   private final Collection<String> supportedFileEndings = List.of("JPEG", "JPG");
   private final DateTimeFormatter exifParser = DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss");
@@ -130,6 +133,7 @@ public class ImageMagic {
     Image smallImage = retrieveImageInfo(SMALL, directoryPath, imageFiles, getOrientation(metadata));
     Image bigImage = retrieveImageInfo(BIG, directoryPath, imageFiles, getOrientation(metadata));
 
+    String cameraModel = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class).getString(TAG_MODEL);
     ImageData imageData = new ImageData(
         directoryPath.getFileName().toString(),
         directoryPath.getFileName().toString(),
@@ -138,15 +142,22 @@ public class ImageMagic {
         bigImage,
         exifSubIFDDirectory.getDateOriginal(),
         humanReadableOf(exifSubIFDDirectory.getString(TAG_DATETIME_ORIGINAL)),
-        metadata.getFirstDirectoryOfType(ExifIFD0Directory.class).getString(TAG_MODEL),
+        cameraModel,
         exifSubIFDDirectory.getString(TAG_ISO_EQUIVALENT),
         exifSubIFDDirectory.getString(TAG_EXPOSURE_TIME),
         exifSubIFDDirectory.getString(TAG_FNUMBER),
         exifSubIFDDirectory.getString(TAG_FOCAL_LENGTH),
-        exifSubIFDDirectory.getString(TAG_35MM_FILM_EQUIV_FOCAL_LENGTH));
+        get35mmEquivalent(cameraModel, exifSubIFDDirectory));
 
     LOGGER.info("adding '" + imageData + "' to cache ...");
     this.images.add(imageData);
+  }
+
+  private String get35mmEquivalent(String model, ExifSubIFDDirectory exifSubIFDDirectory) {
+    if (cameraModelsToSkip35mm.contains(model)) {
+      return "";
+    }
+    return exifSubIFDDirectory.getString(TAG_35MM_FILM_EQUIV_FOCAL_LENGTH);
   }
 
   private LocalDateTime dateTimeOf(String exifDateTime) {
